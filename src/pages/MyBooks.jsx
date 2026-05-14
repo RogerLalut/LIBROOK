@@ -1,146 +1,217 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useBooks } from '../hooks/useBooks';
-import { AuthContext } from '../context/AuthContext';
 import BookCard from '../components/BookCard';
+import { AuthContext } from '../context/AuthContext';
+import { sanitizeInput, isValidURL } from '../utils/security';
 import toast from 'react-hot-toast';
 
 const MyBooks = () => {
-  const { myBooks, addBook, editBook, removeBook } = useBooks();
+  const { myBooks, addBook, editBook, deleteBook } = useBooks();
   const { user } = useContext(AuthContext);
-  
-  const [formData, setFormData] = useState({ 
-    id: null, 
-    title: '', 
-    author: '', 
-    coverUrl: '',
+
+  const [formData, setFormData] = useState({
+    title: '', author: '', coverUrl: '',
+    format: 'fisico', // fisico | digital
     condition: 'nuevo',
-    format: 'fisico',
-    price: '',
-    stock: '1'
+    basePrice: '', stock: ''
   });
   
-  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    // Only load if user exists and context is ready, though the hook manages storage.
-  }, []);
+    if (formData.format === 'digital') {
+      setFormData(prev => ({ ...prev, stock: 999 })); // Stock infinito para digital
+    } else if (formData.format === 'fisico' && formData.stock === 999) {
+      setFormData(prev => ({ ...prev, stock: '' })); // Reset stock
+    }
+  }, [formData.format]);
 
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const validateForm = () => {
+    const newErrors = {};
+    const safeTitle = sanitizeInput(formData.title);
+    const safeAuthor = sanitizeInput(formData.author);
+
+    if (!safeTitle) newErrors.title = "El título es obligatorio.";
+    if (!safeAuthor) newErrors.author = "El autor es obligatorio.";
+    
+    if (formData.coverUrl && !isValidURL(formData.coverUrl)) {
+      newErrors.coverUrl = "La URL de la portada no es válida.";
+    }
+
+    const price = Number(formData.basePrice);
+    if (!formData.basePrice || isNaN(price) || price <= 0) {
+      newErrors.basePrice = "El precio debe ser un número mayor a 0.";
+    }
+
+    if (formData.format === 'fisico') {
+      const st = Number(formData.stock);
+      if (formData.stock === '' || isNaN(st) || st < 0) {
+        newErrors.stock = "El stock debe ser un número mayor o igual a 0.";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.title || !formData.author || !formData.price || !formData.stock) {
-      toast.error('Título, autor, precio y stock son obligatorios');
+    if (!validateForm()) {
+      toast.error("Por favor corrige los errores del formulario.");
       return;
     }
 
-    if (Number(formData.price) <= 0) {
-      toast.error('El precio debe ser mayor a 0');
-      return;
-    }
+    setLoading(true);
 
-    if (Number(formData.stock) < 0) {
-      toast.error('El stock no puede ser negativo');
-      return;
-    }
+    setTimeout(() => {
+      const safeTitle = sanitizeInput(formData.title);
+      const safeAuthor = sanitizeInput(formData.author);
 
-    const newBook = { 
-      ...formData, 
-      id: isEditing ? formData.id : Date.now().toString(),
-      price: Number(formData.price),
-      stock: Number(formData.stock)
-    };
+      const isEbook = formData.format === 'digital';
+      const ebookData = isEbook ? { isEbook: true, format: 'PDF/EPUB', size: '5.0 MB' } : { isEbook: false };
 
-    if (isEditing) {
-      editBook(newBook);
-      toast.success('Libro actualizado exitosamente');
-    } else {
-      addBook(newBook);
-      toast.success('Libro publicado exitosamente');
-    }
-    
-    resetForm();
+      const bookPayload = {
+        title: safeTitle,
+        author: safeAuthor,
+        coverUrl: formData.coverUrl || 'https://via.placeholder.com/300x400?text=Sin+Portada',
+        condition: isEbook ? 'digital' : formData.condition,
+        basePrice: Number(formData.basePrice),
+        stock: isEbook ? 999 : Number(formData.stock),
+        isEbook: isEbook,
+        ebookFormat: ebookData.format,
+        ebookSize: ebookData.size
+      };
+
+      if (editingId) {
+        editBook(editingId, bookPayload);
+        toast.success("Publicación actualizada correctamente.");
+      } else {
+        addBook(bookPayload);
+        toast.success("¡Libro publicado con éxito!");
+      }
+
+      setFormData({ title: '', author: '', coverUrl: '', format: 'fisico', condition: 'nuevo', basePrice: '', stock: '' });
+      setEditingId(null);
+      setErrors({});
+      setLoading(false);
+    }, 500);
   };
 
   const handleEdit = (book) => {
-    setFormData(book);
-    setIsEditing(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setEditingId(book.id);
+    setFormData({
+      title: book.title,
+      author: book.author,
+      coverUrl: book.coverUrl,
+      format: book.isEbook ? 'digital' : 'fisico',
+      condition: book.condition,
+      basePrice: book.basePrice || 0,
+      stock: book.stock || 0
+    });
+    setErrors({});
   };
 
   const handleDelete = (id) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar esta publicación?")) {
-      removeBook(id);
-      toast.success("Publicación eliminada");
+    if (window.confirm("¿Seguro que deseas eliminar esta publicación?")) {
+      deleteBook(id);
+      toast.success("Publicación eliminada.");
     }
   };
 
-  const resetForm = () => {
-    setFormData({ id: null, title: '', author: '', coverUrl: '', condition: 'nuevo', format: 'fisico', price: '', stock: '1' });
-    setIsEditing(false);
-  };
+  if (!user) {
+    return <div className="container py-5 text-center"><h3>Debes iniciar sesión para publicar libros</h3></div>;
+  }
 
   return (
     <div className="container py-5">
       <div className="row justify-content-center mb-5">
-        <div className="col-lg-8">
-          <div className="card shadow-sm border-0 rounded-4">
-            <div className="card-header bg-magenta text-white p-4 rounded-top-4 border-0">
-              <h3 className="mb-0 fw-bold"><i className="bi bi-journal-plus me-2"></i> {isEditing ? 'Editar Publicación' : 'Publicar Nuevo Libro'}</h3>
-              <p className="mb-0 small opacity-75">Administra tu inventario de ventas y arriendos</p>
+        <div className="col-md-8 text-center">
+          <h2 className="fw-bold mb-3"><i className="bi bi-shop text-magenta me-2"></i>Gestión de Publicaciones</h2>
+          <p className="text-muted">Publica tus libros físicos o E-Books en el marketplace global.</p>
+        </div>
+      </div>
+
+      <div className="row g-5">
+        <div className="col-lg-4">
+          <div className="card shadow-sm border-0 rounded-4 sticky-top" style={{top: '100px'}}>
+            <div className="card-header bg-magenta text-white p-4 border-0 rounded-top-4">
+              <h5 className="mb-0 fw-bold">{editingId ? 'Editar Publicación' : 'Nueva Publicación'}</h5>
             </div>
-            <div className="card-body p-4 p-md-5">
-              <form onSubmit={handleSubmit}>
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">Título del Libro *</label>
-                    <input type="text" className="form-control" name="title" value={formData.title} onChange={handleInputChange} required />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">Autor *</label>
-                    <input type="text" className="form-control" name="author" value={formData.author} onChange={handleInputChange} required />
-                  </div>
-                  
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">Estado *</label>
-                    <select className="form-select" name="condition" value={formData.condition} onChange={handleInputChange} required>
-                      <option value="nuevo">Nuevo</option>
-                      <option value="usado">Usado</option>
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">Formato *</label>
-                    <select className="form-select" name="format" value={formData.format} onChange={handleInputChange} required>
-                      <option value="fisico">Libro Físico</option>
-                      <option value="digital">E-Book (Digital)</option>
-                    </select>
-                  </div>
-
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">Precio de Venta ($) *</label>
-                    <input type="number" className="form-control" name="price" min="1" value={formData.price} onChange={handleInputChange} required />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold">Stock / Cantidad *</label>
-                    <input type="number" className="form-control" name="stock" min="1" value={formData.format === 'digital' ? 999 : formData.stock} onChange={handleInputChange} disabled={formData.format === 'digital'} required />
-                    {formData.format === 'digital' && <div className="form-text">Los E-Books tienen stock infinito por defecto.</div>}
-                  </div>
-
-                  <div className="col-12">
-                    <label className="form-label fw-semibold">URL de la Portada (Opcional)</label>
-                    <input type="url" className="form-control" name="coverUrl" placeholder="https://ejemplo.com/imagen.jpg" value={formData.coverUrl} onChange={handleInputChange} />
-                  </div>
+            <div className="card-body p-4 bg-light rounded-bottom-4">
+              <form onSubmit={handleSubmit} noValidate>
+                <div className="mb-3">
+                  <label className="form-label fw-bold small text-muted text-uppercase">Formato de Venta</label>
+                  <select 
+                    className="form-select border-0 shadow-sm py-2" 
+                    value={formData.format} 
+                    onChange={(e) => setFormData({...formData, format: e.target.value})}
+                  >
+                    <option value="fisico">Libro Físico Tradicional</option>
+                    <option value="digital">E-Book (Descarga Digital)</option>
+                  </select>
                 </div>
 
-                <div className="d-flex gap-3 mt-4 pt-3 border-top">
-                  <button type="submit" className="btn btn-magenta px-4 rounded-pill fw-bold">
-                    {isEditing ? 'Guardar Cambios' : 'Publicar Libro'}
+                <div className="mb-3">
+                  <label className="form-label fw-bold small text-muted text-uppercase">Título del Libro</label>
+                  <input type="text" className={`form-control border-0 shadow-sm py-2 ${errors.title ? 'is-invalid' : ''}`} value={formData.title} onChange={(e) => {setFormData({...formData, title: e.target.value}); setErrors({...errors, title: null});}} />
+                  {errors.title && <div className="invalid-feedback">{errors.title}</div>}
+                </div>
+                
+                <div className="mb-3">
+                  <label className="form-label fw-bold small text-muted text-uppercase">Autor</label>
+                  <input type="text" className={`form-control border-0 shadow-sm py-2 ${errors.author ? 'is-invalid' : ''}`} value={formData.author} onChange={(e) => {setFormData({...formData, author: e.target.value}); setErrors({...errors, author: null});}} />
+                  {errors.author && <div className="invalid-feedback">{errors.author}</div>}
+                </div>
+                
+                <div className="mb-3">
+                  <label className="form-label fw-bold small text-muted text-uppercase">URL de la Portada</label>
+                  <input type="url" className={`form-control border-0 shadow-sm py-2 ${errors.coverUrl ? 'is-invalid' : ''}`} placeholder="https://..." value={formData.coverUrl} onChange={(e) => {setFormData({...formData, coverUrl: e.target.value}); setErrors({...errors, coverUrl: null});}} />
+                  {errors.coverUrl && <div className="invalid-feedback">{errors.coverUrl}</div>}
+                </div>
+
+                <div className="row g-2 mb-4">
+                  <div className="col-12">
+                    <label className="form-label fw-bold small text-muted text-uppercase">Precio de Venta ($)</label>
+                    <input type="number" min="1" className={`form-control border-0 shadow-sm py-2 fw-bold text-magenta ${errors.basePrice ? 'is-invalid' : ''}`} value={formData.basePrice} onChange={(e) => {setFormData({...formData, basePrice: e.target.value}); setErrors({...errors, basePrice: null});}} />
+                    {errors.basePrice && <div className="invalid-feedback">{errors.basePrice}</div>}
+                  </div>
+                  
+                  {formData.format === 'fisico' && (
+                    <>
+                      <div className="col-6 mt-3">
+                        <label className="form-label fw-bold small text-muted text-uppercase">Condición</label>
+                        <select className="form-select border-0 shadow-sm py-2" value={formData.condition} onChange={(e) => setFormData({...formData, condition: e.target.value})}>
+                          <option value="nuevo">Nuevo</option>
+                          <option value="usado">Usado</option>
+                        </select>
+                      </div>
+                      <div className="col-6 mt-3">
+                        <label className="form-label fw-bold small text-muted text-uppercase">Stock (Físico)</label>
+                        <input type="number" min="0" className={`form-control border-0 shadow-sm py-2 ${errors.stock ? 'is-invalid' : ''}`} value={formData.stock} onChange={(e) => {setFormData({...formData, stock: e.target.value}); setErrors({...errors, stock: null});}} />
+                        {errors.stock && <div className="invalid-feedback">{errors.stock}</div>}
+                      </div>
+                    </>
+                  )}
+
+                  {formData.format === 'digital' && (
+                    <div className="col-12 mt-3">
+                       <div className="alert alert-info py-2 mb-0 small">
+                         <i className="bi bi-info-circle me-1"></i> Las descargas digitales tienen stock infinito automático.
+                       </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="d-flex gap-2">
+                  <button type="submit" className="btn btn-dark w-100 py-2 fw-bold shadow-sm rounded-3" disabled={loading}>
+                    {loading ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-cloud-arrow-up me-2"></i>}
+                    {editingId ? 'Guardar Cambios' : 'Publicar Libro'}
                   </button>
-                  {isEditing && (
-                    <button type="button" className="btn btn-outline-secondary px-4 rounded-pill fw-bold" onClick={resetForm}>
-                      Cancelar
+                  {editingId && (
+                    <button type="button" className="btn btn-outline-danger py-2 px-3 shadow-sm rounded-3" onClick={() => { setEditingId(null); setFormData({ title: '', author: '', coverUrl: '', format: 'fisico', condition: 'nuevo', basePrice: '', stock: '' }); setErrors({}); }} disabled={loading}>
+                      <i className="bi bi-x-lg"></i>
                     </button>
                   )}
                 </div>
@@ -148,22 +219,20 @@ const MyBooks = () => {
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="row">
-        <div className="col-12">
-          <h3 className="fw-bold mb-4 border-bottom pb-2">Mis Publicaciones ({myBooks.length})</h3>
+        <div className="col-lg-8">
+          <h4 className="fw-bold mb-4 border-bottom pb-2">Tu Catálogo Público ({myBooks.length})</h4>
           {myBooks.length === 0 ? (
-            <div className="text-center py-5 bg-light rounded-4 border border-dashed">
-              <i className="bi bi-box-seam display-1 text-muted mb-3 d-block"></i>
-              <h5 className="text-muted fw-bold">Aún no has publicado ningún libro</h5>
-              <p className="text-secondary">Usa el formulario de arriba para agregar tu primer libro al catálogo.</p>
+            <div className="text-center py-5 bg-white rounded-4 shadow-sm border">
+              <i className="bi bi-shop-window display-1 text-muted mb-3 d-block"></i>
+              <h4 className="text-muted fw-bold">Tu tienda está vacía</h4>
+              <p>Rellena el formulario para publicar tu primer libro.</p>
             </div>
           ) : (
-            <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+            <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
               {myBooks.map((book) => (
                 <div className="col" key={book.id}>
-                  <BookCard book={book} isLocal={true} onEdit={handleEdit} onDelete={handleDelete} />
+                  <BookCard book={book} onEdit={handleEdit} onDelete={handleDelete} isLocal={true} />
                 </div>
               ))}
             </div>

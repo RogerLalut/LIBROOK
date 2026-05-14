@@ -12,6 +12,7 @@ export const CartProvider = ({ children }) => {
   const [ebookMap, setEbookMap] = useState({}); // { isEbook, format, size }
   const [purchaseHistory, setPurchaseHistory] = useState([]);
   const [rentalHistory, setRentalHistory] = useState([]);
+  const [sellerHistory, setSellerHistory] = useState([]);
   
   const { user } = useContext(AuthContext);
 
@@ -21,12 +22,14 @@ export const CartProvider = ({ children }) => {
     const storedPrices = localStorage.getItem('librook_prices');
     const storedConditions = localStorage.getItem('librook_conditions');
     const storedEbooks = localStorage.getItem('librook_ebooks');
+    const storedSales = localStorage.getItem('librook_seller_history');
     
     if (storedCart) setCart(JSON.parse(storedCart));
     if (storedStock) setStockMap(JSON.parse(storedStock));
     if (storedPrices) setPricesMap(JSON.parse(storedPrices));
     if (storedConditions) setConditionMap(JSON.parse(storedConditions));
     if (storedEbooks) setEbookMap(JSON.parse(storedEbooks));
+    if (storedSales) setSellerHistory(JSON.parse(storedSales));
   }, []);
 
   useEffect(() => {
@@ -48,6 +51,7 @@ export const CartProvider = ({ children }) => {
   useEffect(() => { localStorage.setItem('librook_prices', JSON.stringify(pricesMap)); }, [pricesMap]);
   useEffect(() => { localStorage.setItem('librook_conditions', JSON.stringify(conditionMap)); }, [conditionMap]);
   useEffect(() => { localStorage.setItem('librook_ebooks', JSON.stringify(ebookMap)); }, [ebookMap]);
+  useEffect(() => { localStorage.setItem('librook_seller_history', JSON.stringify(sellerHistory)); }, [sellerHistory]);
 
   useEffect(() => {
     if (user) {
@@ -252,6 +256,18 @@ export const CartProvider = ({ children }) => {
         setRentalHistory([...rentalHistory, ...newRentals]);
         toast.success("¡Arriendo confirmado con éxito!");
       }
+
+      // Track sales for the seller (books that are isLocal)
+      const newSales = itemsToCheckout.filter(item => item.isLocal).map(item => ({
+        ...item,
+        transactionDate: date,
+        saleType: checkoutType === 'buy' ? 'Venta' : 'Arriendo',
+        revenue: item.finalPrice * item.quantity
+      }));
+      
+      if (newSales.length > 0) {
+        setSellerHistory([...sellerHistory, ...newSales]);
+      }
       
       setCart(cart.filter(item => 
         checkoutType === 'buy' ? item.type !== 'buy' : !item.type.startsWith('rent')
@@ -269,7 +285,8 @@ export const CartProvider = ({ children }) => {
       checkout, 
       getBookData,
       purchaseHistory,
-      rentalHistory 
+      rentalHistory,
+      sellerHistory
     }}>
       {children}
     </CartContext.Provider>

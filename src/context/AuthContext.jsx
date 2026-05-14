@@ -13,8 +13,8 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const getDiceBearAvatar = (name) => {
-    return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffdfbf,ffd5dc`;
+  const getDiceBearAvatar = (name, style = 'adventurer') => {
+    return `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffdfbf,ffd5dc`;
   };
 
   const login = (email, password) => {
@@ -24,7 +24,6 @@ export const AuthProvider = ({ children }) => {
     const foundUser = users.find(u => u.email === email && u.password === password);
     
     if (foundUser) {
-      // Si el usuario no tiene avatar (usuarios viejos), se lo asignamos
       if (!foundUser.avatar) foundUser.avatar = getDiceBearAvatar(foundUser.name);
       
       setUser(foundUser);
@@ -34,19 +33,27 @@ export const AuthProvider = ({ children }) => {
     return false;
   };
 
-  const register = (name, email, password) => {
+  const register = (name, email, password, avatarUrl) => {
+    // Parche Fuerte de Seguridad: Imposible crear contraseña menor a 6 caracteres por contexto.
+    if (password.length < 6) {
+      toast.error("Error de Sistema: La contraseña es demasiado corta.");
+      return false;
+    }
+
     const usersStr = localStorage.getItem('librook_users');
     const users = usersStr ? JSON.parse(usersStr) : [];
     
     if (users.find(u => u.email === email)) {
-      return false; // Email ya existe
+      return false; 
     }
+
+    const finalAvatar = avatarUrl || getDiceBearAvatar(name, 'adventurer');
 
     const newUser = { 
       name, 
       email, 
       password,
-      avatar: getDiceBearAvatar(name),
+      avatar: finalAvatar,
       bio: 'Lector apasionado en LIBROOK.',
       preferences: [] 
     };
@@ -62,7 +69,9 @@ export const AuthProvider = ({ children }) => {
     if (!user) return;
     
     const oldName = user.name;
-    const newAvatar = updatedData.name !== oldName ? getDiceBearAvatar(updatedData.name) : user.avatar;
+    const newAvatar = updatedData.name !== oldName && !updatedData.avatar 
+      ? getDiceBearAvatar(updatedData.name) 
+      : updatedData.avatar;
     
     const updatedUser = { 
       ...user, 
@@ -70,24 +79,19 @@ export const AuthProvider = ({ children }) => {
       avatar: updatedData.avatar || newAvatar 
     };
 
-    // Actualizar usuario en sesión
     setUser(updatedUser);
     localStorage.setItem('librook_current_user', JSON.stringify(updatedUser));
     
-    // Actualizar en base de datos local
     const usersStr = localStorage.getItem('librook_users');
     if (usersStr) {
       const users = JSON.parse(usersStr);
       const index = users.findIndex(u => u.email === user.email);
       if (index !== -1) {
-        // En base de datos no cambiamos el email por si rompe relaciones, pero el usuario puede "simular" cambiarlo en la UI.
-        // Mejor si lo actualizamos por completo
         users[index] = updatedUser;
         localStorage.setItem('librook_users', JSON.stringify(users));
       }
     }
 
-    // Actualizar Reseñas Globales dinámicamente
     if (oldName !== updatedUser.name) {
       const allReviewsStr = localStorage.getItem('librook_reviews');
       if (allReviewsStr) {

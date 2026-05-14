@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { CartContext } from '../context/CartContext';
 import { FavoritesContext } from '../context/FavoritesContext';
 import { AuthContext } from '../context/AuthContext';
+import { sanitizeInput } from '../utils/security';
 import toast from 'react-hot-toast';
 
 const BookDetail = () => {
@@ -15,6 +16,7 @@ const BookDetail = () => {
   const book = location.state?.book;
 
   const [rentDuration, setRentDuration] = useState('rent-1');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   if (!book) {
     return (
@@ -41,6 +43,8 @@ const BookDetail = () => {
   const [reviews, setReviews] = useState([]);
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [reviewError, setReviewError] = useState(null);
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
@@ -78,24 +82,40 @@ const BookDetail = () => {
       toast.error('Debes iniciar sesión para dejar una reseña.');
       return;
     }
-    
-    const reviewObj = {
-      user: user.name || user.email.split('@')[0],
-      rating: Number(newReview.rating),
-      comment: newReview.comment,
-      date: new Date().toLocaleDateString(),
-      avatar: user.avatar // Se guarda la foto para optimizar renderizado original
-    };
 
-    const updatedReviews = [reviewObj, ...reviews];
-    setReviews(updatedReviews);
+    const safeComment = sanitizeInput(newReview.comment);
+    if (!safeComment) {
+      setReviewError("La reseña no puede estar vacía o contener solo caracteres inválidos.");
+      return;
+    }
+    if (safeComment.length > 500) {
+      setReviewError("La reseña no puede tener más de 500 caracteres.");
+      return;
+    }
     
-    const allReviews = JSON.parse(localStorage.getItem('librook_reviews') || '{}');
-    allReviews[id] = updatedReviews;
-    localStorage.setItem('librook_reviews', JSON.stringify(allReviews));
-    
-    setNewReview({ rating: 5, comment: '' });
-    toast.success('¡Reseña publicada!');
+    setSubmittingReview(true);
+    setReviewError(null);
+
+    setTimeout(() => {
+      const reviewObj = {
+        user: user.name || user.email.split('@')[0],
+        rating: Number(newReview.rating),
+        comment: safeComment,
+        date: new Date().toLocaleDateString(),
+        avatar: user.avatar 
+      };
+
+      const updatedReviews = [reviewObj, ...reviews];
+      setReviews(updatedReviews);
+      
+      const allReviews = JSON.parse(localStorage.getItem('librook_reviews') || '{}');
+      allReviews[id] = updatedReviews;
+      localStorage.setItem('librook_reviews', JSON.stringify(allReviews));
+      
+      setNewReview({ rating: 5, comment: '' });
+      setSubmittingReview(false);
+      toast.success('¡Reseña publicada!');
+    }, 400);
   };
 
   const rent1WeekPrice = Math.round(basePrice * 0.2);
@@ -118,11 +138,8 @@ const BookDetail = () => {
     addToCart({...book, id, condition, ebookData}, rentDuration);
   };
 
-  // Helper para mostrar avatar sincronizado si es el usuario actual, sino el que se guardó
   const getReviewAvatar = (rev) => {
-    if (user && rev.user === user.name) {
-      return user.avatar; // Avatar actualizado en vivo
-    }
+    if (user && rev.user === user.name) return user.avatar;
     return rev.avatar || getDiceBearAvatar(rev.user);
   };
 
@@ -204,7 +221,7 @@ const BookDetail = () => {
       </div>
 
       {/* Reviews Section */}
-      <div className="row mt-5">
+      <div className="row mt-5 mb-5">
         <div className="col-lg-8 mx-auto">
           <h3 className="fw-bold mb-4 border-bottom pb-3">Reseñas de Lectores</h3>
           
@@ -213,10 +230,10 @@ const BookDetail = () => {
               <img src={user.avatar} alt="Mi Avatar" className="rounded-circle shadow-sm" style={{ width: '50px', height: '50px', backgroundColor: '#f8f9fa' }} />
               <div className="flex-grow-1">
                 <h5 className="fw-bold mb-3">Deja tu reseña, {user.name}</h5>
-                <form onSubmit={handleReviewSubmit}>
+                <form onSubmit={handleReviewSubmit} noValidate>
                   <div className="mb-3">
-                    <label className="form-label text-muted">Puntuación</label>
-                    <select className="form-select" value={newReview.rating} onChange={(e) => setNewReview({...newReview, rating: e.target.value})}>
+                    <label className="form-label text-muted fw-semibold">Puntuación</label>
+                    <select className="form-select border-0 shadow-sm" value={newReview.rating} onChange={(e) => setNewReview({...newReview, rating: e.target.value})}>
                       <option value="5">5 Estrellas - Excelente</option>
                       <option value="4">4 Estrellas - Muy bueno</option>
                       <option value="3">3 Estrellas - Bueno</option>
@@ -226,15 +243,17 @@ const BookDetail = () => {
                   </div>
                   <div className="mb-3">
                     <textarea 
-                      className="form-control" 
+                      className={`form-control border-0 shadow-sm ${reviewError ? 'is-invalid' : ''}`} 
                       rows="3" 
                       placeholder="¿Qué te pareció este libro?" 
                       value={newReview.comment}
-                      onChange={(e) => setNewReview({...newReview, comment: e.target.value})}
-                      required
+                      onChange={(e) => { setNewReview({...newReview, comment: e.target.value}); setReviewError(null); }}
                     ></textarea>
+                    {reviewError && <div className="invalid-feedback fw-bold">{reviewError}</div>}
                   </div>
-                  <button type="submit" className="btn btn-dark rounded-pill px-4 fw-bold">Publicar Reseña</button>
+                  <button type="submit" className="btn btn-dark rounded-pill px-4 fw-bold" disabled={submittingReview}>
+                    {submittingReview ? <><span className="spinner-border spinner-border-sm me-2"></span>Publicando...</> : "Publicar Reseña"}
+                  </button>
                 </form>
               </div>
             </div>
