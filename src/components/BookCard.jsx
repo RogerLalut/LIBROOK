@@ -49,13 +49,13 @@ const BookCard = ({ book, onEdit, onDelete, isLocal = false }) => {
   const getBadges = () => {
     if (ebookData.isEbook) {
       return (
-        <div className="mb-3 d-flex flex-wrap gap-1">
+        <div className="d-flex flex-wrap gap-1">
           <span className="badge bg-dark text-white border px-3"><i className="bi bi-laptop me-1"></i>E-Book Digital</span>
         </div>
       );
     }
     return (
-      <div className="mb-3 d-flex flex-wrap gap-1">
+      <div className="d-flex flex-wrap gap-1">
         <span className={`badge ${condition === 'nuevo' ? 'bg-primary' : 'bg-secondary'}`}>
           {condition === 'nuevo' ? 'Nuevo' : 'Usado'}
         </span>
@@ -89,12 +89,16 @@ const BookCard = ({ book, onEdit, onDelete, isLocal = false }) => {
       />
       
       <div className="card-body d-flex flex-column">
-        <div className="d-flex justify-content-between align-items-start mb-1">
-          <h5 className="card-title fw-bold text-dark text-truncate mb-0" title={title}>{title}</h5>
+        <div className="mb-1" style={{ height: '48px', overflow: 'hidden' }}>
+          <h5 className="card-title fw-bold text-dark mb-0" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={title}>{title}</h5>
         </div>
-        <p className="card-text text-muted small mb-2 text-truncate" title={author}>{author}</p>
+        <div className="mb-2" style={{ height: '20px', overflow: 'hidden' }}>
+          <p className="card-text text-muted small mb-0 text-truncate" title={author}>{author}</p>
+        </div>
         
-        {getBadges()}
+        <div className="mb-3" style={{ height: '24px', overflow: 'hidden' }}>
+          {getBadges()}
+        </div>
         
         <div className="mt-auto">
           <p className="fw-bold text-magenta fs-5 mb-2">${price.toLocaleString()}</p>
@@ -113,7 +117,7 @@ const BookCard = ({ book, onEdit, onDelete, isLocal = false }) => {
             </div>
           ) : (
             <Link to={`/book/${encodeURIComponent(id)}`} state={{ book: { ...book, isLocal, coverUrl, title, author, condition, ebookData } }} className="btn btn-magenta w-100 rounded-pill fw-bold mt-2">
-              {ebookData.isEbook ? 'Leer más' : 'Ver más'}
+              Ver más
             </Link>
           )}
         </div>

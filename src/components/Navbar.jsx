@@ -27,7 +27,7 @@ const Navbar = () => {
     <nav className="navbar navbar-expand-lg glass-nav py-2 border-bottom">
       <div className="container">
         <Link className="navbar-brand fw-bold text-magenta d-flex align-items-center me-4" to="/">
-          <i className="bi bi-book-half me-2 fs-3"></i>
+          <img src="/logo.png" alt="LIBROOK Logo" height="40" className="me-2" style={{ objectFit: 'contain' }} />
           <span className="fs-4">LIBROOK</span>
         </Link>
         <button className="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">

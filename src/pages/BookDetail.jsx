@@ -44,7 +44,12 @@ const BookDetail = () => {
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   // eslint-disable-next-line react-hooks/rules-of-hooks
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const [reviewError, setReviewError] = useState(null);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {

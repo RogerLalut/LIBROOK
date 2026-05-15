@@ -67,13 +67,13 @@ const Carousel = ({ items, loading, title }) => {
       >
         {loading ? (
           [...Array(5)].map((_, i) => (
-            <div key={i} style={{ flex: '0 0 280px', scrollSnapAlign: 'start' }}>
+            <div key={i} style={{ flex: '0 0 280px', width: '280px', minWidth: '280px', maxWidth: '280px', scrollSnapAlign: 'start' }} className="h-100">
               <BookCardSkeleton />
             </div>
           ))
         ) : (
           items.map((book, idx) => (
-            <div key={book.key || book.id || idx} style={{ flex: '0 0 280px', scrollSnapAlign: 'start', transition: 'transform 0.3s' }} className="carousel-item-hover">
+            <div key={book.key || book.id || idx} style={{ flex: '0 0 280px', width: '280px', minWidth: '280px', maxWidth: '280px', scrollSnapAlign: 'start', transition: 'transform 0.3s' }} className="carousel-item-hover h-100">
               <BookCard book={book} isLocal={book.isLocal} />
             </div>
           ))
