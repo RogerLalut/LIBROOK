@@ -66,39 +66,50 @@ const Home = () => {
   return (
     <div>
       {/* Hero Section */}
-      <section className="bg-dark text-white py-5 position-relative overflow-hidden" style={{ minHeight: '400px' }}>
-        <div className="container position-relative z-2 py-5">
+      <section className="text-white py-5 position-relative overflow-hidden fade-in-up" style={{ 
+        minHeight: '600px',
+        background: 'linear-gradient(135deg, #111827 0%, #1f2937 100%)'
+      }}>
+        {/* Mesh Gradient Orbs */}
+        <div className="position-absolute rounded-circle opacity-50" style={{ width: '600px', height: '600px', background: 'radial-gradient(circle, var(--primary-magenta) 0%, transparent 70%)', top: '-20%', right: '-10%', filter: 'blur(80px)' }}></div>
+        <div className="position-absolute rounded-circle opacity-50" style={{ width: '400px', height: '400px', background: 'radial-gradient(circle, var(--secondary-yellow) 0%, transparent 70%)', bottom: '-10%', left: '5%', filter: 'blur(60px)' }}></div>
+        
+        <div className="container position-relative z-2 py-5 mt-4">
           <div className="row align-items-center">
-            <div className="col-lg-6">
-              <span className="badge bg-magenta px-3 py-2 rounded-pill mb-3 fs-6">Nueva Temporada</span>
-              <h1 className="display-4 fw-bold mb-3">Encuentra tu próxima gran aventura</h1>
-              <p className="lead mb-4 opacity-75">Millones de libros físicos y E-Books digitales te esperan. Compra, arrienda o vende tus libros en un solo lugar.</p>
+            <div className="col-lg-7">
+              <span className="badge bg-magenta px-4 py-2 rounded-pill mb-4 fs-6 shadow-sm border border-light border-opacity-25" style={{letterSpacing: '1px'}}><i className="bi bi-stars me-1"></i> NUEVA TEMPORADA</span>
+              <h1 className="display-4 fw-bold mb-4" style={{ lineHeight: '1.2' }}>Encuentra tu próxima <span className="text-yellow" style={{ color: 'var(--secondary-yellow)' }}>gran aventura</span></h1>
+              <p className="lead mb-5 opacity-75 fs-4" style={{ fontWeight: '300' }}>Millones de libros físicos y E-Books digitales te esperan. Compra, arrienda o vende tus libros en un solo lugar.</p>
               
-              <div className="d-flex shadow-lg rounded-pill overflow-hidden bg-white p-1" style={{ maxWidth: '500px' }}>
+              <div className="d-flex shadow-lg rounded-pill overflow-hidden bg-white p-2 mb-4" style={{ maxWidth: '600px', border: '6px solid rgba(255,255,255,0.1)' }}>
                 <input 
                   type="text" 
-                  className="form-control border-0 px-4 py-2 bg-transparent" 
+                  className="form-control border-0 px-4 py-3 bg-transparent fs-5" 
                   placeholder="¿Qué quieres leer hoy?" 
                   onKeyDown={(e) => e.key === 'Enter' && navigate(`/search?q=${e.target.value}`)}
                 />
-                <button className="btn btn-magenta rounded-pill px-4 fw-bold" onClick={() => navigate('/search')}>
-                  <i className="bi bi-search"></i>
+                <button className="btn btn-magenta rounded-pill px-5 fw-bold fs-5 shadow-sm" onClick={() => navigate('/search')}>
+                  <i className="bi bi-search me-2"></i> Buscar
                 </button>
               </div>
-              <div className="mt-3 text-white-50 small">
-                <i className="bi bi-star-fill text-warning me-1"></i> +50,000 usuarios confían en nosotros
+              <div className="mt-4 text-white-50 fs-6">
+                <i className="bi bi-star-fill text-warning me-2"></i> +50,000 lectores ya confían en nosotros
               </div>
+            </div>
+            
+            <div className="col-lg-5 d-none d-lg-block position-relative">
+               {/* Decorative floating mockups */}
+               <div className="position-relative w-100" style={{ height: '450px' }}>
+                 <img src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop" alt="Libro" className="position-absolute rounded-4 shadow-lg transition-all" style={{ width: '220px', height: '320px', objectFit: 'cover', transform: 'rotate(-12deg)', left: '5%', top: '40px', zIndex: 2, border: '6px solid white' }} />
+                 <img src="https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=600&auto=format&fit=crop" alt="E-Book" className="position-absolute rounded-4 shadow-lg transition-all" style={{ width: '240px', height: '340px', objectFit: 'cover', transform: 'rotate(8deg)', right: '5%', top: '80px', zIndex: 1, border: '6px solid white' }} />
+               </div>
             </div>
           </div>
         </div>
-        {/* Background Decorative Graphic */}
-        <div className="position-absolute top-0 end-0 h-100 w-50 opacity-25 d-none d-lg-block" style={{
-          background: 'radial-gradient(circle at 70% 50%, var(--primary-magenta) 0%, transparent 60%)'
-        }}></div>
       </section>
 
       {/* Featured Categories */}
-      <section className="py-5 bg-light">
+      <section className="py-5 bg-light fade-in-up" style={{ animationDelay: '0.2s' }}>
         <div className="container">
           <h3 className="fw-bold mb-4 text-center">Explorar Categorías</h3>
           <div className="row g-3 justify-content-center">
@@ -120,7 +131,7 @@ const Home = () => {
       </section>
 
       {/* Recomendados Para Ti (Carrusel Automático) */}
-      <section className="py-5 overflow-hidden">
+      <section className="py-5 overflow-hidden fade-in-up" style={{ animationDelay: '0.3s' }}>
         <div className="container">
           <div className="d-flex justify-content-between align-items-end mb-4">
             <div>
@@ -139,7 +150,7 @@ const Home = () => {
       </section>
 
       {/* Libros Digitales E-Books */}
-      <section className="py-5 bg-dark text-white">
+      <section className="py-5 bg-dark text-white fade-in-up" style={{ animationDelay: '0.4s' }}>
         <div className="container">
           <div className="row align-items-center mb-5">
             <div className="col-md-8">
@@ -157,7 +168,7 @@ const Home = () => {
       </section>
 
       {/* Bestsellers Físicos */}
-      <section className="py-5 mb-5">
+      <section className="py-5 mb-5 fade-in-up" style={{ animationDelay: '0.5s' }}>
         <div className="container">
           <div className="d-flex justify-content-between align-items-end mb-4">
             <div>

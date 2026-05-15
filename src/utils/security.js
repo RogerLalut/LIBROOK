@@ -38,6 +38,7 @@ export const isValidEmail = (email) => {
  */
 export const isValidURL = (url) => {
   if (!url) return true; // Si es opcional y está vacía
+  if (url.startsWith('data:image/')) return true; // Permitir imágenes base64 locales
   try {
     new URL(url);
     return url.startsWith('http://') || url.startsWith('https://');

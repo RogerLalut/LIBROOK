@@ -5,7 +5,7 @@ import { AuthContext } from '../context/AuthContext';
 import { sanitizeInput, isValidURL } from '../utils/security';
 import toast from 'react-hot-toast';
 
-const MyBooks = () => {
+const MyBooks = ({ isEmbedded = false }) => {
   const { myBooks, addBook, editBook, deleteBook } = useBooks();
   const { user } = useContext(AuthContext);
 
@@ -56,6 +56,49 @@ const MyBooks = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 4 * 1024 * 1024) {
+        toast.error("La imagen supera los 4MB. Por favor elige una más ligera.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 500;
+          const MAX_HEIGHT = 700;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.6); // Compress to 60% JPEG
+          setFormData(prev => ({...prev, coverUrl: dataUrl}));
+          setErrors(prev => ({...prev, coverUrl: null}));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateForm()) {
@@ -84,18 +127,24 @@ const MyBooks = () => {
         ebookSize: ebookData.size
       };
 
-      if (editingId) {
-        editBook(editingId, bookPayload);
-        toast.success("Publicación actualizada correctamente.");
-      } else {
-        addBook(bookPayload);
-        toast.success("¡Libro publicado con éxito!");
-      }
+      try {
+        if (editingId) {
+          editBook(editingId, bookPayload);
+          toast.success("Publicación actualizada correctamente.");
+        } else {
+          addBook(bookPayload);
+          toast.success("¡Libro publicado con éxito!");
+        }
 
-      setFormData({ title: '', author: '', coverUrl: '', format: 'fisico', condition: 'nuevo', basePrice: '', stock: '' });
-      setEditingId(null);
-      setErrors({});
-      setLoading(false);
+        setFormData({ title: '', author: '', coverUrl: '', format: 'fisico', condition: 'nuevo', basePrice: '', stock: '' });
+        setEditingId(null);
+        setErrors({});
+      } catch (err) {
+        console.error("Error saving book:", err);
+        toast.error("Error al guardar. La imagen es demasiado pesada para el almacenamiento local. Usa una URL.");
+      } finally {
+        setLoading(false);
+      }
     }, 500);
   };
 
@@ -124,18 +173,12 @@ const MyBooks = () => {
     return <div className="container py-5 text-center"><h3>Debes iniciar sesión para publicar libros</h3></div>;
   }
 
-  return (
-    <div className="container py-5">
-      <div className="row justify-content-center mb-5">
-        <div className="col-md-8 text-center">
-          <h2 className="fw-bold mb-3"><i className="bi bi-shop text-magenta me-2"></i>Gestión de Publicaciones</h2>
-          <p className="text-muted">Publica tus libros físicos o E-Books en el marketplace global.</p>
-        </div>
-      </div>
 
-      <div className="row g-5">
-        <div className="col-lg-4">
-          <div className="card shadow-sm border-0 rounded-4 sticky-top" style={{top: '100px'}}>
+
+  const content = (
+    <div className="row g-5">
+      <div className={isEmbedded ? "col-12 col-xl-5" : "col-lg-4"}>
+        <div className="card shadow-sm border-0 rounded-4 sticky-top" style={{top: '100px'}}>
             <div className="card-header bg-magenta text-white p-4 border-0 rounded-top-4">
               <h5 className="mb-0 fw-bold">{editingId ? 'Editar Publicación' : 'Nueva Publicación'}</h5>
             </div>
@@ -166,9 +209,31 @@ const MyBooks = () => {
                 </div>
                 
                 <div className="mb-3">
-                  <label className="form-label fw-bold small text-muted text-uppercase">URL de la Portada</label>
-                  <input type="url" className={`form-control border-0 shadow-sm py-2 ${errors.coverUrl ? 'is-invalid' : ''}`} placeholder="https://..." value={formData.coverUrl} onChange={(e) => {setFormData({...formData, coverUrl: e.target.value}); setErrors({...errors, coverUrl: null});}} />
-                  {errors.coverUrl && <div className="invalid-feedback">{errors.coverUrl}</div>}
+                  <label className="form-label fw-bold small text-muted text-uppercase">Portada del Libro (URL o Archivo)</label>
+                  <div className="input-group shadow-sm rounded-2 border-0 bg-white">
+                    <input 
+                      type="text" 
+                      className={`form-control border-0 py-2 ${errors.coverUrl ? 'is-invalid' : ''}`} 
+                      placeholder="Pega una URL (https://...)" 
+                      value={formData.coverUrl.startsWith('data:image') ? 'Archivo de imagen local cargado' : formData.coverUrl} 
+                      onChange={(e) => {setFormData({...formData, coverUrl: e.target.value}); setErrors({...errors, coverUrl: null});}} 
+                      disabled={formData.coverUrl.startsWith('data:image')}
+                    />
+                    {formData.coverUrl.startsWith('data:image') ? (
+                      <button className="btn btn-outline-danger border-0" type="button" onClick={() => setFormData({...formData, coverUrl: ''})} title="Quitar imagen">
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    ) : (
+                      <label className="input-group-text bg-white border-0 text-magenta border-start" style={{ cursor: 'pointer' }} title="Subir desde tu PC">
+                        <i className="bi bi-upload me-2"></i> Subir
+                        <input type="file" accept="image/*" className="d-none" onChange={handleImageUpload} />
+                      </label>
+                    )}
+                  </div>
+                  {errors.coverUrl && <div className="text-danger small mt-1">{errors.coverUrl}</div>}
+                  {formData.coverUrl && formData.coverUrl.startsWith('data:image') && (
+                    <div className="text-success small mt-1"><i className="bi bi-check-circle-fill me-1"></i>Lista para publicar</div>
+                  )}
                 </div>
 
                 <div className="row g-2 mb-4">
@@ -220,7 +285,7 @@ const MyBooks = () => {
           </div>
         </div>
 
-        <div className="col-lg-8">
+        <div className={isEmbedded ? "col-12 col-xl-7" : "col-lg-8"}>
           <h4 className="fw-bold mb-4 border-bottom pb-2">Tu Catálogo Público ({myBooks.length})</h4>
           {myBooks.length === 0 ? (
             <div className="text-center py-5 bg-white rounded-4 shadow-sm border">
@@ -239,6 +304,28 @@ const MyBooks = () => {
           )}
         </div>
       </div>
+  );
+
+  if (isEmbedded) {
+    return (
+      <div className="bg-white p-4 p-md-5 rounded-4 shadow-sm border border-light">
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 border-bottom pb-3 gap-3">
+          <h3 className="fw-bold mb-0"><i className="bi bi-shop-window text-magenta me-2"></i>Publicar y Administrar</h3>
+        </div>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <div className="container py-5">
+      <div className="row justify-content-center mb-5">
+        <div className="col-md-8 text-center">
+          <h2 className="fw-bold mb-3"><i className="bi bi-shop text-magenta me-2"></i>Gestión de Publicaciones</h2>
+          <p className="text-muted">Publica tus libros físicos o E-Books en el marketplace global.</p>
+        </div>
+      </div>
+      {content}
     </div>
   );
 };

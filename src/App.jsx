@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -14,6 +14,15 @@ import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
+  useEffect(() => {
+    // Reset de fábrica solicitado por el usuario para limpiar cuelgues/usuarios corruptos
+    if (!localStorage.getItem('librook_factory_reset_v2')) {
+      localStorage.clear();
+      localStorage.setItem('librook_factory_reset_v2', 'true');
+      window.location.href = '/'; // Redirigir al inicio para evitar pantalla en blanco en /profile
+    }
+  }, []);
+
   return (
     <>
       <Navbar />

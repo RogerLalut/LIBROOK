@@ -198,11 +198,11 @@ const Search = () => {
   );
 
   return (
-    <div className="container py-5">
+    <div className="container py-5 fade-in-up">
       <div className="row justify-content-center mb-4">
         <div className="col-md-8 text-center">
           <h2 className="fw-bold mb-4 text-dark">Buscador de Libros</h2>
-          <div className="d-flex shadow-sm rounded-pill overflow-hidden border bg-white">
+          <div className="d-flex shadow-sm rounded-pill overflow-hidden border bg-white p-1">
             <input 
               type="text" 
               className="form-control border-0 px-4 py-3" 
@@ -283,7 +283,7 @@ const Search = () => {
         }
       `}</style>
 
-      <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 mb-5">
+      <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 mb-5 fade-in-up" style={{ animationDelay: '0.2s' }}>
         {loading ? renderSkeletons() : (
           visibleBooks.map((book, index) => (
             <div className="col book-fade-in" key={book.key || book.id || index}>

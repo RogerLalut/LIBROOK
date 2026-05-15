@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
 export const AuthContext = createContext();
@@ -13,9 +13,9 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const getDiceBearAvatar = (name, style = 'adventurer') => {
+  const getDiceBearAvatar = useCallback((name, style = 'adventurer') => {
     return `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffdfbf,ffd5dc`;
-  };
+  }, []);
 
   const login = (email, password) => {
     const usersStr = localStorage.getItem('librook_users');

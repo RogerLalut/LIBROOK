@@ -1,24 +1,35 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { CartContext } from '../context/CartContext';
 import { Link } from 'react-router-dom';
 
 const Cart = () => {
-  const { cart, removeFromCart, checkout } = useContext(CartContext);
+  const { cart, removeFromCart, checkoutAll } = useContext(CartContext);
+
+  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
 
   const calculateTotal = (items) => {
     return items.reduce((total, item) => total + (item.finalPrice * item.quantity), 0);
   };
 
   const handleUnifiedCheckout = () => {
-    checkout('buy');
-    checkout('rent');
+    checkoutAll();
+    setCheckoutSuccess(true);
   };
 
   return (
     <div className="container py-5">
       <h2 className="fw-bold mb-5 text-dark"><i className="bi bi-cart3 text-magenta me-2"></i> Carrito General</h2>
       
-      {cart.length === 0 ? (
+      {checkoutSuccess ? (
+        <div className="text-center py-5 bg-white rounded-4 shadow-sm border fade-in-up">
+          <i className="bi bi-check-circle-fill display-1 text-success mb-3 d-block"></i>
+          <h3 className="text-success fw-bold">¡Pago Procesado con Éxito!</h3>
+          <p className="text-secondary fs-5">Tu transacción se completó correctamente.</p>
+          <button className="btn btn-magenta mt-3 rounded-pill px-4 fw-bold" onClick={() => setCheckoutSuccess(false)}>
+            Seguir Explorando
+          </button>
+        </div>
+      ) : cart.length === 0 ? (
         <div className="text-center py-5 bg-white rounded-4 shadow-sm border">
           <i className="bi bi-cart-x display-1 text-muted mb-3 d-block"></i>
           <h4 className="text-muted fw-bold">Tu carrito está vacío</h4>

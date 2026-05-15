@@ -10,7 +10,7 @@ const BookDetail = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, getDiceBearAvatar } = useContext(AuthContext);
-  const { addToCart, getBookData } = useContext(CartContext);
+  const { addToCart, getBookData, cart } = useContext(CartContext);
   const { toggleFavorite, isFavorite } = useContext(FavoritesContext);
 
   const book = location.state?.book;
@@ -123,14 +123,17 @@ const BookDetail = () => {
     }, 400);
   };
 
+  const quantityInCart = cart.filter(item => (item.id || item.key) === id).reduce((sum, item) => sum + item.quantity, 0);
+  const remainingStock = ebookData.isEbook ? 999 : Math.max(0, stock - quantityInCart);
+
   const rent1WeekPrice = Math.round(basePrice * 0.2);
   const rent2WeekPrice = Math.round(basePrice * 0.35);
 
   const getStockLabel = () => {
     if (ebookData.isEbook) return <span className="badge bg-info text-dark shadow-sm fs-6"><i className="bi bi-cloud-arrow-down-fill me-1"></i>Descarga Digital Inmediata</span>;
-    if (stock === 0) return <span className="badge bg-danger fs-6">Agotado</span>;
-    if (stock <= 2) return <span className="badge bg-warning text-dark fs-6">Pocas unidades ({stock})</span>;
-    return <span className="badge bg-success fs-6">Disponible ({stock})</span>;
+    if (remainingStock === 0) return <span className="badge bg-danger fs-6">Agotado en Carrito</span>;
+    if (remainingStock <= 2) return <span className="badge bg-warning text-dark fs-6">Pocas unidades ({remainingStock})</span>;
+    return <span className="badge bg-success fs-6">Disponible ({remainingStock})</span>;
   };
 
   const renderStars = (rating) => {
@@ -149,24 +152,42 @@ const BookDetail = () => {
   };
 
   return (
-    <div className="container py-5">
-      <button className="btn btn-light mb-4 shadow-sm border" onClick={() => navigate(-1)}>
-        <i className="bi bi-arrow-left me-2"></i>Volver
-      </button>
-
-      <div className="row g-5 bg-white p-4 p-md-5 rounded-4 shadow-sm border mb-5">
-        <div className="col-lg-4 text-center position-relative">
-          <img src={book.coverUrl} alt={book.title} className="book-cover-large img-fluid rounded" style={{maxHeight: '450px', objectFit: 'cover'}} />
-          <button className="fav-btn" style={{ top: '15px', right: '15px', width: '45px', height: '45px', fontSize: '1.2rem' }} onClick={() => toggleFavorite({...book, id})}>
-            <i className={`bi ${favStatus ? 'bi-heart-fill text-danger' : 'bi-heart'}`}></i>
+    <div className="container-fluid p-0 mb-5 fade-in-up">
+      {/* Immersive Blurred Background Header */}
+      <div className="position-relative w-100 overflow-hidden bg-dark" style={{ height: '350px' }}>
+        <div 
+          className="position-absolute w-100 h-100" 
+          style={{ 
+            backgroundImage: `url(${book.coverUrl})`, 
+            backgroundSize: 'cover', 
+            backgroundPosition: 'center', 
+            filter: 'blur(30px) brightness(0.4)',
+            transform: 'scale(1.1)'
+          }}
+        ></div>
+        
+        {/* Top Navbar / Back Button Area over the background */}
+        <div className="container position-relative z-2 pt-4">
+          <button className="btn btn-outline-light rounded-pill px-4 shadow-sm" onClick={() => navigate(-1)}>
+            <i className="bi bi-arrow-left me-2"></i>Volver al Catálogo
           </button>
         </div>
-        
-        <div className="col-lg-8">
-          <div className="d-flex justify-content-between align-items-start mb-2">
-            <h1 className="fw-bold display-6 mb-0 text-dark">{book.title}</h1>
+      </div>
+
+      <div className="container position-relative" style={{ marginTop: '-200px', zIndex: 10 }}>
+        <div className="row g-5 bg-white p-4 p-md-5 rounded-4 shadow-lg border mb-5">
+          <div className="col-lg-4 text-center position-relative">
+            <img src={book.coverUrl} alt={book.title} className="img-fluid rounded-4 shadow-lg" style={{maxHeight: '480px', objectFit: 'cover', border: '6px solid white'}} />
+            <button className="fav-btn" style={{ top: '25px', right: '25px', width: '50px', height: '50px', fontSize: '1.4rem', boxShadow: '0 5px 15px rgba(0,0,0,0.2)' }} onClick={() => toggleFavorite({...book, id})}>
+              <i className={`bi ${favStatus ? 'bi-heart-fill text-danger' : 'bi-heart'}`}></i>
+            </button>
           </div>
-          <h4 className="text-muted mb-4">{book.author}</h4>
+          
+          <div className="col-lg-8 pt-3">
+            <div className="d-flex justify-content-between align-items-start mb-2">
+              <h1 className="fw-bold display-5 mb-0 text-dark" style={{ lineHeight: '1.2' }}>{book.title}</h1>
+            </div>
+            <h4 className="text-muted mb-4 fs-3 fw-light">{book.author}</h4>
           
           <div className="d-flex flex-wrap gap-3 mb-4">
             {getStockLabel()}
@@ -195,9 +216,9 @@ const BookDetail = () => {
               <h5 className="fw-bold mb-3"><i className={`bi ${ebookData.isEbook ? 'bi-laptop' : 'bi-bag-fill'} text-primary me-2`}></i>{ebookData.isEbook ? 'Comprar Edición Digital' : 'Comprar Físico'}</h5>
               <p className="fs-2 fw-bold text-magenta mb-3">${basePrice.toLocaleString()}</p>
               <button 
-                className={`btn ${ebookData.isEbook ? 'btn-info text-dark' : 'btn-primary'} rounded-pill px-4 w-100 fw-bold py-3 ${(!ebookData.isEbook && stock === 0) ? 'disabled' : ''}`}
+                className={`btn ${ebookData.isEbook ? 'btn-info text-dark' : 'btn-primary'} rounded-pill px-4 w-100 fw-bold py-3 ${(!ebookData.isEbook && remainingStock === 0) ? 'disabled' : ''}`}
                 onClick={() => addToCart({...book, id, condition, ebookData}, 'buy')}
-                disabled={!ebookData.isEbook && stock === 0}
+                disabled={!ebookData.isEbook && remainingStock === 0}
               >
                 <i className={`bi ${ebookData.isEbook ? 'bi-cloud-download' : 'bi-cart-plus'} me-2`}></i> {ebookData.isEbook ? 'Comprar E-Book' : 'Agregar al carrito'}
               </button>
@@ -213,9 +234,9 @@ const BookDetail = () => {
                   </select>
                 </div>
                 <button 
-                  className={`btn btn-outline-warning text-dark border-2 rounded-pill w-100 fw-bold py-3 ${stock === 0 ? 'disabled' : ''}`}
+                  className={`btn btn-outline-warning text-dark border-2 rounded-pill w-100 fw-bold py-3 ${remainingStock === 0 ? 'disabled' : ''}`}
                   onClick={handleRentSubmit}
-                  disabled={stock === 0}
+                  disabled={remainingStock === 0}
                 >
                   <i className="bi bi-journal-plus me-2"></i> Agregar Arriendo
                 </button>
@@ -284,7 +305,8 @@ const BookDetail = () => {
 
         </div>
       </div>
-
+      
+      </div>
     </div>
   );
 };

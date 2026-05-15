@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from './AuthContext';
 import toast from 'react-hot-toast';
 
@@ -81,8 +81,9 @@ export const CartProvider = ({ children }) => {
         newConditionMap[bookId] = currentCondition;
         updated = true;
       }
-      if (currentBasePrice !== predefinedData.price) {
-        currentBasePrice = predefinedData.price;
+      const incomingPrice = predefinedData.basePrice !== undefined ? predefinedData.basePrice : predefinedData.price;
+      if (currentBasePrice !== incomingPrice) {
+        currentBasePrice = incomingPrice;
         newPricesMap[bookId] = currentBasePrice;
         updated = true;
       }
@@ -147,9 +148,9 @@ export const CartProvider = ({ children }) => {
     return { stock: currentStock, basePrice: currentBasePrice, condition: currentCondition, ebook: currentEbook };
   };
 
-  const getBookData = (bookId, isLocal, predefinedData = null) => {
+  const getBookData = useCallback((bookId, isLocal, predefinedData = null) => {
     return initializeData(bookId, isLocal, predefinedData);
-  };
+  }, [stockMap, pricesMap, conditionMap, ebookMap]);
 
   const addToCart = (book, type) => {
     if (!user) {
@@ -245,7 +246,14 @@ export const CartProvider = ({ children }) => {
         if (item.type === 'buy') {
           newPurchases.push(historyItem);
         } else {
-          newRentals.push(historyItem);
+          const returnD = new Date();
+          const weeks = item.type === 'rent-1' ? 1 : 2;
+          returnD.setDate(returnD.getDate() + (weeks * 7));
+          
+          newRentals.push({
+            ...historyItem,
+            returnDate: returnD.toLocaleDateString()
+          });
         }
       });
 
@@ -277,12 +285,80 @@ export const CartProvider = ({ children }) => {
     }
   };
 
+  const checkoutAll = () => {
+    if (cart.length === 0) return;
+    
+    const newStockMap = { ...stockMap };
+    let success = true;
+    
+    const neededStock = {};
+    cart.forEach(item => {
+        const id = item.id || item.key;
+        neededStock[id] = (neededStock[id] || 0) + item.quantity;
+    });
+
+    for (const id in neededStock) {
+        const currentEbook = ebookMap[id];
+        if (currentEbook && currentEbook.isEbook) continue; 
+
+        if (newStockMap[id] >= neededStock[id]) {
+            newStockMap[id] -= neededStock[id];
+        } else {
+            success = false;
+        }
+    }
+
+    if (success) {
+      setStockMap(newStockMap);
+      
+      const newPurchases = [];
+      const newRentals = [];
+      const newSales = [];
+      const date = new Date().toLocaleDateString();
+
+      cart.forEach(item => {
+        const historyItem = { ...item, transactionDate: date };
+        if (item.type === 'buy') {
+          newPurchases.push(historyItem);
+        } else {
+          const returnD = new Date();
+          const weeks = item.type === 'rent-1' ? 1 : 2;
+          returnD.setDate(returnD.getDate() + (weeks * 7));
+          
+          newRentals.push({
+            ...historyItem,
+            returnDate: returnD.toLocaleDateString()
+          });
+        }
+
+        if (item.isLocal) {
+          newSales.push({
+            ...item,
+            transactionDate: date,
+            saleType: item.type === 'buy' ? 'Venta' : 'Arriendo',
+            revenue: item.finalPrice * item.quantity
+          });
+        }
+      });
+
+      setPurchaseHistory(prev => [...prev, ...newPurchases]);
+      setRentalHistory(prev => [...prev, ...newRentals]);
+      setSellerHistory(prev => [...prev, ...newSales]);
+      
+      setCart([]);
+      toast.success("¡Pago procesado exitosamente! Pedido completado.");
+    } else {
+      toast.error("Hubo un problema de stock con algunos productos.");
+    }
+  };
+
   return (
     <CartContext.Provider value={{ 
       cart, 
       addToCart, 
       removeFromCart, 
-      checkout, 
+      checkout,
+      checkoutAll,
       getBookData,
       purchaseHistory,
       rentalHistory,

@@ -6,6 +6,7 @@ import { FavoritesContext } from '../context/FavoritesContext';
 import { useBooks } from '../hooks/useBooks';
 import { sanitizeInput, isValidEmail, isValidURL } from '../utils/security';
 import BookCard from '../components/BookCard';
+import MyBooks from './MyBooks';
 import toast from 'react-hot-toast';
 
 const AVATAR_STYLES = ['adventurer', 'bottts', 'pixel-art', 'fun-emoji', 'avataaars'];
@@ -289,7 +290,12 @@ const Profile = () => {
                           </div>
                         </td>
                         <td className="text-muted">{item.transactionDate}</td>
-                        <td><span className="badge bg-warning text-dark">{item.typeLabel}</span></td>
+                        <td>
+                          <span className="badge bg-warning text-dark d-block mb-1">{item.typeLabel}</span>
+                          {item.returnDate && (
+                            <span className="small text-danger fw-bold"><i className="bi bi-clock-history me-1"></i>Devolver: {item.returnDate}</span>
+                          )}
+                        </td>
                         <td className="fw-bold text-magenta">${item.finalPrice.toLocaleString()}</td>
                       </tr>
                     ))}
@@ -435,6 +441,8 @@ const Profile = () => {
             </form>
           </div>
         );
+      case 'publicar':
+        return <MyBooks isEmbedded={true} />;
       default:
         return null;
     }
@@ -477,6 +485,12 @@ const Profile = () => {
                   onClick={() => handleTabChange('configuracion')}
                 >
                   <i className="bi bi-gear-fill me-2"></i> Configuración
+                </button>
+                <button 
+                  className={`list-group-item list-group-item-action py-3 px-4 border-0 fw-semibold ${activeTab === 'publicar' ? 'active bg-magenta text-white' : 'text-dark'}`} 
+                  onClick={() => handleTabChange('publicar')}
+                >
+                  <i className="bi bi-shop-window me-2"></i> Publicar / Administrar
                 </button>
                 <button 
                   className="list-group-item list-group-item-action py-3 px-4 border-0 rounded-bottom-4 fw-semibold text-danger" 
