@@ -36,6 +36,7 @@ Con un diseño enfocado en la experiencia del usuario (UI/UX) y un robusto panel
 ## 💻 Tecnologías Utilizadas
 
 ### Frontend & UI
+
 - **React.js** (Librería principal)
 - **Vite** (Empaquetador ultrarrápido)
 - **React Router DOM v6** (Navegación SPA)
@@ -44,32 +45,35 @@ Con un diseño enfocado en la experiencia del usuario (UI/UX) y un robusto panel
 - **React Hot Toast** (Notificaciones modernas)
 
 ### APIs e Integraciones
+
 - **OpenLibrary API:** Consumo de catálogo público global de libros.
-- **DiceBear API:** Generación procedural de avatares en 5 estilos diferentes (*Adventurer, Bottts, Pixel-Art, etc.*).
+- **DiceBear API:** Generación procedural de avatares en 5 estilos diferentes (_Adventurer, Bottts, Pixel-Art, etc._).
 
 ---
 
 ## 🤖 Inteligencia Artificial Utilizada
 
-El desarrollo de este proyecto fue impulsado y arquitectado en colaboración con **Antigravity**, un asistente de IA avanzado especializado en *Agentic Coding* diseñado por **Google DeepMind**. 
+El desarrollo de este proyecto fue impulsado y arquitectado en colaboración con **Antigravity**, un asistente de IA avanzado especializado en _Agentic Coding_ diseñado por **Google DeepMind**.
 La IA fue clave para:
+
 - Implementar algoritmos de seguridad (Prevención XSS y validaciones dinámicas).
 - Diseñar la lógica del `Context API` para un carrito de compras unificado (compra/arriendo).
 - Construir interfaces modernas (Glassmorphism) y optimizar el rendimiento de renderizado en React.
+- ChatGPT fue utilizado para generar ideas, refinar el código y ayudar con la documentación.
 
 ---
 
 ## 📸 Capturas de Pantalla
 
-*(Reemplaza estas URLs locales por las imágenes reales de tu proyecto)*
+_(Reemplaza estas URLs locales por las imágenes reales de tu proyecto)_
 
 | Catálogo Principal | Panel de Usuario (Dashboard) |
-| :---: | :---: |
-| <img src="https://via.placeholder.com/600x350.png?text=Captura+Catalogo" alt="Catálogo" width="100%" /> | <img src="https://via.placeholder.com/600x350.png?text=Captura+Dashboard" alt="Dashboard" width="100%" /> |
+![alt text](image.png)
+![alt text](image-1.png)
 
 | Selector de Avatares | Detalle y Compra |
-| :---: | :---: |
-| <img src="https://via.placeholder.com/600x350.png?text=Captura+Avatares" alt="Avatares" width="100%" /> | <img src="https://via.placeholder.com/600x350.png?text=Captura+Detalle" alt="Detalle de Libro" width="100%" /> |
+![alt text](image-2.png)
+![alt text](image-3.png)
 
 ---
 
@@ -78,26 +82,32 @@ La IA fue clave para:
 Sigue estos pasos para correr LIBROOK en tu propia máquina:
 
 ### 1. Pre-requisitos
+
 Asegúrate de tener instalado [Node.js](https://nodejs.org/) (versión 16.x o superior).
 
 ### 2. Clonar el repositorio
+
 ```bash
 git clone https://github.com/RogerLalut/LIBROOK.git
 cd LIBROOK
 ```
 
 ### 3. Instalar dependencias
+
 Usando NPM:
+
 ```bash
 npm install
 ```
 
 ### 4. Iniciar el servidor de desarrollo
+
 ```bash
 npm run dev
 ```
 
 ### 5. Ver la aplicación
+
 Abre tu navegador y navega a la URL que indica la terminal (por lo general, `http://localhost:5173`).
 
 ---
@@ -105,8 +115,9 @@ Abre tu navegador y navega a la URL que indica la terminal (por lo general, `htt
 ## 🛡️ Aspectos de Seguridad
 
 Este proyecto implementa buenas prácticas de seguridad Frontend:
+
 - **Sanitización de Inputs:** Función centralizada que intercepta y neutraliza inyecciones HTML y Scripts (`<script>`).
-- **Manejo de Errores Robustos:** `Try/Catch` en peticiones HTTP, *timeouts* de 20 segundos para evitar fugas de memoria y bloqueos UI.
+- **Manejo de Errores Robustos:** `Try/Catch` en peticiones HTTP, _timeouts_ de 20 segundos para evitar fugas de memoria y bloqueos UI.
 - **Validación Bootstrap:** Retroalimentación visual inmediata antes de enviar formularios a la lógica de negocio.
 
 ---
